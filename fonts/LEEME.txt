@@ -1,0 +1,10 @@
+Fuentes de la plataforma NELOBOT (subconjunto latino, WOFF2 variables).
+
+Origen: Google Fonts (fonts.gstatic.com), descargadas el 2026-10-05 para que la plataforma funcione
+sin internet en la red RobotMapa.
+
+- Geist (400–700) y Geist Mono (400–500) — Vercel. SIL Open Font License 1.1.
+  https://github.com/vercel/geist-font
+
+Licencia OFL 1.1: https://openfontlicense.org (se pueden usar, incrustar y redistribuir libremente;
+no se pueden vender solas).
