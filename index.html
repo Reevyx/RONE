@@ -2203,6 +2203,13 @@ try { var hEntrada = decodeURIComponent(location.hash.replace(/^#/, "")); if (hE
   .vt-roma-vista.activa { opacity: 1; scale: 1; translate: 0 0; rotate: 0deg; }
   .vt-escenario.roma .vt-punto { z-index: 3; transition: transform 0.5s var(--facil), opacity 0.4s ease; }
   .vt-escenario.roma:not([data-v="0"]) .vt-punto { opacity: 0; pointer-events: none; }
+  /* Sesión 50: NELO con sus fotos reales, igual que ROMA */
+  .vt-tarjeta.nelo .vt-tarjeta-medio > img { width: auto; height: 82%; max-width: 90%; object-fit: contain; filter: drop-shadow(0 18px 22px rgba(11, 16, 34, 0.18)); }
+  .robot-foto-marco.nelo > img { width: 80%; height: 88%; filter: drop-shadow(0 16px 20px rgba(11, 16, 34, 0.18)); }
+  .vt-escenario.nelo { overflow: visible; }
+  .vitrina .vt-escenario.nelo[data-inclinar] { transform-style: flat; }
+  .vt-escenario.nelo .vt-punto { z-index: 3; transition: transform 0.5s var(--facil), opacity 0.4s ease; }
+  .vt-escenario.nelo:not([data-v="0"]) .vt-punto { opacity: 0; pointer-events: none; }
   .vt-roma-mando {
     position: absolute; left: 3%; top: 5%; z-index: 2; width: 22%; margin: 0;
     transform: perspective(600px) rotateX(var(--mrx, 0deg)) rotateY(var(--mry, 0deg)); transition: transform 0.9s var(--facil);
@@ -2353,7 +2360,7 @@ try { var hEntrada = decodeURIComponent(location.hash.replace(/^#/, "")); if (hE
       </div>
       <div class="vt-tarjetas">
         <article class="vt-tarjeta nelo" data-inclinar="9">
-          <button class="vt-tarjeta-medio" type="button" data-ir="vt-nelo" data-cursor="Ver" aria-label="Ver NELO en detalle"><img data-media="robot.webp" alt="NELO con sus 14 componentes desplegados" width="1080" height="720"></button>
+          <button class="vt-tarjeta-medio" type="button" data-ir="vt-nelo" data-cursor="Ver" aria-label="Ver NELO en detalle"><img data-media="nelo/nelo_34.webp" alt="NELO: carcasa blanca impresa en 3D, cámara arriba, la cara en su pantalla y los faros encendidos" width="742" height="605"></button>
           <div class="vt-tarjeta-pie">
             <div class="vt-tarjeta-nombre"><h3><svg class="vt-flecha" aria-hidden="true"><use href="#icoFlecha"/></svg>NELO</h3><span>de Andrea De La Torre</span></div>
             <p>Registra el lugar: dibuja un mapa 2D con su recorrido y cada obstáculo que detecta.</p>
@@ -2391,15 +2398,26 @@ try { var hEntrada = decodeURIComponent(location.hash.replace(/^#/, "")); if (hE
         </div>
       </div>
       <figure class="vt-robot-figura">
-        <div class="vt-escenario nelo" data-inclinar="7">
-          <img data-media="robot.webp" alt="NELO desplegado en sus 14 componentes" width="1080" height="720">
-          <button class="vt-punto" type="button" style="--x:53.7%;--y:35.4%" aria-describedby="vtP1"><span id="vtP1" role="tooltip"><b>ESP32-C3 SuperMini</b>Crea la red Wi-Fi y calcula la posición</span></button>
-          <button class="vt-punto" type="button" style="--x:66.9%;--y:41%" aria-describedby="vtP2"><span id="vtP2" role="tooltip"><b>VL53L0X</b>Láser que mide lo que hay al frente</span></button>
-          <button class="vt-punto" type="button" style="--x:39.6%;--y:20.8%" aria-describedby="vtP3"><span id="vtP3" role="tooltip"><b>MPU-6050</b>Giroscopio: hacia dónde mira</span></button>
-          <button class="vt-punto" type="button" style="--x:19%;--y:61.8%" aria-describedby="vtP4"><span id="vtP4" role="tooltip"><b>Encoders</b>Cuentan cuánto giran las ruedas</span></button>
-          <button class="vt-punto" type="button" style="--x:77.3%;--y:25.7%" aria-describedby="vtP5"><span id="vtP5" role="tooltip"><b>Pantalla OLED</b>Su cara y el mapa pequeño</span></button>
+        <div class="vt-escenario nelo" data-inclinar="7" id="vtNelo" data-v="0">
+          <div class="vt-roma-vistas">
+            <img class="vt-roma-vista activa" data-media="nelo/nelo_34.webp" alt="NELO en tres cuartos: carcasa blanca impresa en 3D, cámara y antena arriba, la cara en la pantalla y los faros encendidos" width="742" height="605">
+            <img class="vt-roma-vista" data-media="nelo/nelo_lado.webp" alt="NELO de lado: las pilas y el cableado atrás, la rueda amarilla y la cámara arriba" width="1028" height="751">
+            <img class="vt-roma-vista" data-media="nelo/nelo_frente.webp" alt="NELO de frente: la cámara arriba y su cara en la pantalla OLED" width="593" height="684">
+            <img class="vt-roma-vista" data-media="nelo/nelo_faros.webp" alt="NELO de frente con los faros encendidos" width="514" height="524">
+          </div>
+          <button class="vt-punto" type="button" style="--x:64%;--y:18%" aria-describedby="vtP1"><span id="vtP1" role="tooltip"><b>ESP32-CAM</b>Su cámara: la IA de la laptop nombra lo que ve y a qué distancia</span></button>
+          <button class="vt-punto" type="button" style="--x:72.8%;--y:43%" aria-describedby="vtP5"><span id="vtP5" role="tooltip"><b>Pantalla OLED</b>Su cara y el mapa pequeño</span></button>
+          <button class="vt-punto" type="button" style="--x:66%;--y:66%" aria-describedby="vtP2"><span id="vtP2" role="tooltip"><b>Faros automáticos</b>Se encienden solos cuando el sensor de luz ve oscuridad</span></button>
+          <button class="vt-punto" type="button" style="--x:40.6%;--y:73%" aria-describedby="vtP4"><span id="vtP4" role="tooltip"><b>Ruedas con encoders</b>Cuentan cuánto giran para saber cuánto avanzó</span></button>
+          <button class="vt-punto" type="button" style="--x:46.5%;--y:40%" aria-describedby="vtP3"><span id="vtP3" role="tooltip"><b>Carcasa impresa en 3D</b>Adentro: ESP32-C3, láser VL53L0X y giroscopio</span></button>
+          <div class="vt-roma-selector" role="group" aria-label="Vistas de NELO">
+            <button type="button" data-nelovista="0" aria-pressed="true">3/4</button>
+            <button type="button" data-nelovista="1" aria-pressed="false">Lado</button>
+            <button type="button" data-nelovista="2" aria-pressed="false">Frente</button>
+            <button type="button" data-nelovista="3" aria-pressed="false">Faros</button>
+          </div>
         </div>
-        <figcaption><span class="mono">14</span> piezas · pasa por los puntos para ver qué hace cada una</figcaption>
+        <figcaption>NELO gira solo entre sus vistas · pasa por los puntos para ver qué hace cada parte</figcaption>
       </figure>
     </section>
 
@@ -3243,7 +3261,7 @@ try { var hEntrada = decodeURIComponent(location.hash.replace(/^#/, "")); if (hE
 
         <div class="duo">
           <article class="robot-ficha">
-            <figure class="robot-foto-marco nelo" data-cursor="Ver" data-ir="nelo-despiece"><img data-media="robot.webp" alt="NELO con sus 14 componentes desplegados" width="1080" height="720"></figure>
+            <figure class="robot-foto-marco nelo" data-cursor="Ver" data-ir="nelo-despiece"><img data-media="nelo/nelo_34.webp" alt="NELO: carcasa blanca impresa en 3D, cámara arriba, la cara en su pantalla y los faros encendidos" width="742" height="605"></figure>
             <div class="robot-texto">
               <div class="robot-nombre"><h3>NELO</h3><span>Registra el lugar</span></div>
               <p>Dibuja un mapa 2D con su recorrido y los obstáculos que detecta, y lo comparte con cualquier equipo conectado a su red.</p>
@@ -9111,6 +9129,25 @@ var qrcode = function() {
   botonesTurno.forEach(b => b.addEventListener("click", () => {
     if (b.dataset.turno !== turno) mostrarTurno(b.dataset.turno, true);
   }));
+
+  // NELO (sesión 50): sus fotos reales se turnan igual que las de ROMA (se detienen con el cursor encima o al elegir una)
+  const neloEsc = $("vtNelo"), neloVistas = [...neloEsc.querySelectorAll(".vt-roma-vista")];
+  const neloBotones = [...neloEsc.querySelectorAll("[data-nelovista]")];
+  let neloV = 0, neloEncima = false, neloElegida = false;
+  function verNelo(i) {
+    neloV = i; neloEsc.dataset.v = String(i);
+    neloVistas.forEach((im, k) => im.classList.toggle("activa", k === i));
+    neloBotones.forEach((b, k) => b.setAttribute("aria-pressed", k === i ? "true" : "false"));
+  }
+  neloBotones.forEach((b, k) => b.addEventListener("click", () => { neloElegida = true; verNelo(k); }));
+  neloEsc.addEventListener("pointerenter", () => { neloEncima = true; });
+  neloEsc.addEventListener("pointerleave", () => { neloEncima = false; });
+  setInterval(() => {
+    if (neloEncima || neloElegida || quieto() || !enEntrada() || document.hidden) return;
+    const r = neloEsc.getBoundingClientRect();
+    if (r.bottom < 0 || r.top > innerHeight) return;
+    verNelo((neloV + 1) % neloVistas.length);
+  }, 3400);
 
   // ROMA (sesión 45): sus tres fotos se turnan solas (se detienen con el cursor encima o al elegir una)
   // y el mando se inclina con el cursor, como la mano de su operadora
