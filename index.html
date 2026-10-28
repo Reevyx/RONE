@@ -2730,6 +2730,11 @@ try { var hEntrada = decodeURIComponent(location.hash.replace(/^#/, "")); if (hE
                 <label>Inclinada <input type="number" id="camInclinacion" min="-20" max="60" step="1" inputmode="decimal"> ° abajo</label>
                 <button class="btn-accion" type="submit">Guardar</button>
               </form>
+              <form class="cam-geo" id="camCalDist">
+                <span class="cam-geo-titulo">¿Las distancias no coinciden? <small>(mide la altura de arriba, pon algo en el centro a una distancia medida con regla, con «Detectar obstáculos» encendido)</small></span>
+                <label>Está a <input type="number" id="camCalCm" min="10" max="300" step="1" inputmode="decimal" placeholder="50"> cm</label>
+                <button class="btn-accion" type="submit">Ajustar</button>
+              </form>
             </div>
           </div>
         </section>
@@ -8403,6 +8408,16 @@ var qrcode = function() {
     e.preventDefault();
     await orden("geometria", { altura_cm: Number($("camAltura").value), inclinacion_grados: Number($("camInclinacion").value) }, "Montaje de la cámara guardado");
     geoTocada = false;
+  });
+  $("camCalDist").addEventListener("submit", async e => {
+    e.preventDefault();
+    try {
+      const res = await fetch("/api/camara/calibrar_distancia", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ cm: Number($("camCalCm").value) }) });
+      const j = await res.json();
+      if (!j.ok) mostrarAviso(j.error || "No se pudo ajustar", "error");
+      else { mostrarAviso(`Listo: inclinación ${j.inclinacion_grados}° (medida con «${j.objeto}»)`, "ok"); geoTocada = false; }
+    } catch (e2) { mostrarAviso("No se pudo hablar con el servidor", "error"); }
+    setTimeout(consultar, 400);
   });
 
   const nivel = $("camFlashNivel"), fuerte = $("camFlashFuerte");
