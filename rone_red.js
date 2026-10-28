@@ -22,7 +22,7 @@
   try { claveOp = localStorage.getItem("rone.clave") || ""; } catch (e) { /* sin almacenamiento */ }
 
   const json = (datos, estado = 200) => new Response(JSON.stringify(datos), { status: estado, headers: { "Content-Type": "application/json" } });
-  const ES_SERVIDOR = /^\/(api|jarvis|video_feed|video_profundidad|fotos|informe)(\/|\?|$)/;
+  const ES_SERVIDOR = /^\/(api|jarvis|video_feed|video_feed_roma|video_profundidad|fotos|informe)(\/|\?|$)/;
   function rutaServidor(u) {
     if (u instanceof URL) u = u.href;
     else if (u && typeof u === "object" && "url" in u) u = u.url;
@@ -30,7 +30,7 @@
     if (u.startsWith(location.origin)) u = u.slice(location.origin.length);
     const base = location.pathname.replace(/[^/]*$/, "");          // /repositorio/ en GitHub Pages
     if (base.length > 1 && u.startsWith(base)) u = "/" + u.slice(base.length);
-    if (/^(video_feed|video_profundidad|informe|api|jarvis|fotos)(\/|\?|$)/.test(u)) u = "/" + u;   // rutas relativas ("informe", "video_feed?t=…")
+    if (/^(video_feed|video_feed_roma|video_profundidad|informe|api|jarvis|fotos)(\/|\?|$)/.test(u)) u = "/" + u;   // rutas relativas ("informe", "video_feed?t=…")
     return ES_SERVIDOR.test(u) ? u : null;
   }
 

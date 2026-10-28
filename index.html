@@ -857,6 +857,7 @@ try { var hEntrada = decodeURIComponent(location.hash.replace(/^#/, "")); if (hE
   .cam-fuerte small { color: var(--tinta-3); }
   .cam-res { display: inline-flex; align-items: center; gap: 8px; }
   .cam-res select { min-height: 32px; padding: 0 8px; border-radius: 8px; border: 1px solid var(--borde-2); background: var(--superficie); color: var(--tinta); font: inherit; }
+  @media (min-width: 901px) { #camaraRomaPanel .cam-controles { grid-row: 1; } }   /* ROMA no tiene «Lo que reconoce» */
   @media (max-width: 900px) { .cam-cuerpo { grid-template-columns: minmax(0, 1fr); } .cam-visor, .cam-aprender, .cam-controles { grid-column: auto; grid-row: auto; } .cam-pista { white-space: normal; width: max-content; max-width: calc(100% - 20px); text-align: center; } }
   @media (max-width: 420px) { .cam-zona { padding: 8px; } .cam-zona b { font-size: 16px; } }
 
@@ -2733,6 +2734,51 @@ try { var hEntrada = decodeURIComponent(location.hash.replace(/^#/, "")); if (hE
           </div>
         </section>
 
+        <section class="pantalla camara-panel" id="camaraRomaPanel" aria-labelledby="tituloCamaraRoma">
+          <div class="pantalla-cab"><h2 id="tituloCamaraRoma">Cámara de ROMA</h2><small>ESP32-CAM sobre el pan/tilt · la orienta el guante izquierdo</small></div>
+          <div class="cam-cuerpo">
+            <div class="cam-visor">
+              <img id="romaVideo" alt="Video en vivo de la cámara de ROMA">
+              <canvas class="cam-cajas" id="romaCajas" aria-hidden="true"></canvas>
+              <p class="solo-lector" id="romaCajasTexto" aria-live="polite"></p>
+              <div class="cam-vacio" id="romaVacio">
+                <p id="romaVacioTexto">Conectando…</p>
+              </div>
+            </div>
+            <div class="cam-controles">
+              <dl class="lista-datos cam-datos">
+                <div><dt>Cámara</dt><dd id="romaEstado">—</dd></div>
+                <div><dt>Red</dt><dd id="romaRed">—</dd></div>
+                <div><dt>Video</dt><dd id="romaFps">—</dd></div>
+                <div><dt>Objetos</dt><dd id="romaDeteccion">—</dd></div>
+              </dl>
+              <div class="cam-interruptores">
+                <label class="interruptor"><input type="checkbox" id="romaTransmision" checked><span></span>Transmisión</label>
+                <label class="interruptor"><input type="checkbox" id="romaDetectar"><span></span>Nombrar lo que ve</label>
+                <label class="interruptor"><input type="checkbox" id="romaGirada"><span></span>Imagen girada 180°</label>
+              </div>
+              <div class="cam-flash">
+                <button class="btn-accion" id="romaFlash" type="button" aria-pressed="false">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M13 2 4 14h7l-1 8 9-12h-7z"/></svg>
+                  <span>Flash</span>
+                </button>
+                <input type="range" id="romaFlashNivel" min="1" max="50" value="30" aria-label="Intensidad del flash de ROMA">
+                <output id="romaFlashValor" for="romaFlashNivel">30</output>
+              </div>
+              <div class="cam-pie">
+                <label class="cam-res">Resolución
+                  <select id="romaResolucion">
+                    <option value="0">160×120</option>
+                    <option value="1" selected>320×240</option>
+                    <option value="2" disabled>640×480 (solo con la zona RONE-VIDEO)</option>
+                  </select>
+                </label>
+              </div>
+              <p class="nota-calibracion">«Nombrar lo que ve» usa la misma IA y lo que le enseñaste a la cámara de NELO. No mide distancias (la cámara de ROMA se inclina) y nunca frena a ningún robot.</p>
+            </div>
+          </div>
+        </section>
+
         <h2 class="seccion-titulo">Accesos rápidos</h2>
         <div class="accesos">
           <a class="pantalla acceso" href="#mapa" style="--c:#2451c7"><span class="icono-chip"><svg aria-hidden="true"><use href="#icoMapa"/></svg></span><span><b>Mapa en vivo</b><small>Lo que NELO registra en tiempo real</small></span><svg class="acceso-flecha" aria-hidden="true"><use href="#icoFlecha"/></svg></a>
@@ -2837,7 +2883,11 @@ try { var hEntrada = decodeURIComponent(location.hash.replace(/^#/, "")); if (hE
                 <div class="evasion-fila">
                   <label class="interruptor"><input type="checkbox" id="chkEvasion" checked><span></span>Rodear obstáculos</label>
                 </div>
-                <p class="nota-calibracion">Si hay un obstáculo real, el robot lo rodea y vuelve a la ruta. Solo cuenta como obstáculo si se acerca al avanzar.</p>
+                <p class="nota-calibracion" id="notaEvasion">Si hay un obstáculo real, el robot lo rodea y vuelve a la ruta. Solo cuenta como obstáculo si se acerca al avanzar.</p>
+                <div class="zona-peligro">
+                  <span>Limpia el rastro y los obstáculos del mapa (la ruta se conserva)</span>
+                  <button class="btn-accion" id="btnLimpiarMapa" type="button"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 21h18M7 17l10-10M14 4l6 6-7 7H7v-6z"/></svg>Limpiar mapa</button>
+                </div>
                 <div class="zona-peligro">
                   <span>Borra la ruta grabada</span>
                   <button class="btn-accion borrar" id="btnBorrar" type="button"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 7h16M10 11v6M14 11v6M6 7l1 13h10l1-13M9 7V4h6v3"/></svg>Borrar</button>
@@ -4240,6 +4290,7 @@ async function obtenerDatos() {
       calibracion: d.calibracion,
       diagnostico: d.diagnostico,
       laser_mm: d.laser_mm,
+      laser_tapado: d.laser_tapado,
       bateria: d.bateria,
       encoders: d.encoders,
       respaldo: d.respaldo,
@@ -4514,6 +4565,11 @@ document.getElementById("btnEnInicio").addEventListener("click", (e) => {
 document.getElementById("btnBorrar").addEventListener("click", (e) => {
   if (!confirm("¿Borrar el recorrido guardado?")) return;
   accionBoton(e.currentTarget, "/api/borrar_recorrido", "Recorrido borrado", "No se pudo borrar el recorrido");
+});
+
+document.getElementById("btnLimpiarMapa").addEventListener("click", (e) => {
+  if (!confirm("¿Limpiar el rastro y los obstáculos del mapa? La ruta grabada no se borra.")) return;
+  accionBoton(e.currentTarget, "/api/limpiar_mapa", "Mapa limpio", "No se pudo limpiar el mapa");
 });
 
 document.getElementById("btnResetOrigen").addEventListener("click", (e) => {
@@ -7578,9 +7634,13 @@ var qrcode = function() {
     if (c && (c.evasion === 0 || c.evasion === 1) && Date.now() > evasionPendienteHasta) chkEvasion.checked = c.evasion === 1;
     const mm = d.laser_mm;
     const el = $("laserVivo");
-    const texto = (mm === null || mm === undefined) ? "—" : (mm >= 9000 ? "nada cerca" : `${Math.round(mm)} mm`);
+    const texto = d.laser_tapado && (mm === null || mm === undefined) ? "tapado por el chasis" :
+      (mm === null || mm === undefined) ? "—" : (mm >= 9000 ? "nada cerca" : `${Math.round(mm)} mm`);
     ponerTexto(el, texto);
     el.classList.toggle("cerca", typeof mm === "number" && mm < 150);
+    ponerTexto($("notaEvasion"), d.laser_tapado
+      ? "El láser mide su propio chasis, así que no puede rodear: si la cámara ve algo delante, el robot espera a que lo quiten y sigue."
+      : "Si hay un obstáculo real, el robot lo rodea y vuelve a la ruta. Solo cuenta como obstáculo si se acerca al avanzar.");
   }, 300);
 
   // ---------- Prueba de sensores ----------
@@ -7898,8 +7958,10 @@ var qrcode = function() {
     lista.push({ nombre: "Enlace con el robot", detalle: vivo ? "Llegan datos por Wi-Fi (UDP 4210)" : parcial ? "El servidor responde, pero el robot no envía datos" : "Sin conexión con el servidor",
       estado: vivo ? "ok" : parcial ? "aviso" : "mal" });
     const laser = d && typeof d.laser_mm === "number" ? d.laser_mm : null;
-    lista.push({ nombre: "Sensor láser VL53L0X", detalle: laser === null ? "Sin lecturas recientes" : laser >= 9000 ? "Funciona: nada al alcance" : `Funciona: mide ${Math.round(laser / 10)} cm`,
-      estado: laser === null ? "aviso" : "ok" });
+    const tapado = !!(d && d.laser_tapado);
+    lista.push({ nombre: "Sensor láser VL53L0X", detalle: tapado ? "Mide siempre su propio chasis: no ve obstáculos (ábrele una ventana delante de los lentes). Se ignora; frena la cámara" :
+      laser === null ? "Sin lecturas recientes" : laser >= 9000 ? "Funciona: nada al alcance" : `Funciona: mide ${Math.round(laser / 10)} cm`,
+      estado: tapado || laser === null ? "aviso" : "ok" });
     const puntos = d && Array.isArray(d.path) ? d.path.length : 0;
     lista.push({ nombre: "Odometría y giroscopio", detalle: vivo ? `Posición en el mapa · ${puntos} puntos de ruta` : "Esperando la posición del robot",
       estado: vivo ? "ok" : "aviso" });
@@ -8359,6 +8421,133 @@ var qrcode = function() {
   document.addEventListener("visibilitychange", ajustarVideo);
   window.addEventListener("hashchange", () => setTimeout(() => { ajustarVideo(); consultar(); }, 60));
   setInterval(() => { ajustarVideo(); consultar(); }, 1000);
+  ajustarVideo();
+  consultar();
+})();
+
+/* Cámara de ROMA (sesión 48): la ESP32-CAM de ROMA con la misma programación que la de NELO (IP .51).
+   Habla con /api/camara_roma* y /video_feed_roma. Lo que detecta solo se nombra: no mide distancias (la cámara
+   va sobre el pan/tilt) ni frena a ningún robot. No toca el mapa ni ultimoDatos. */
+(function () {
+  const $ = id => document.getElementById(id);
+  const panel = $("camaraRomaPanel");
+  if (!panel) return;
+  const vista = panel.closest(".vista");
+  const img = $("romaVideo");
+  const IMAGEN_VACIA = "data:image/gif;base64,R0lGODlhAQABAAAAACw=";
+  let videoAbierto = false, ultimo = null, enviando = false, pidiendo = false;
+  const visible = () => !!vista && !vista.hidden && document.visibilityState === "visible";
+  const texto = (id, t) => { const el = $(id); if (el && el.textContent !== t) el.textContent = t; };
+
+  const lienzo = $("romaCajas"), ctx = lienzo.getContext("2d");
+  function dibujarCajas(cajas) {
+    const ancho = lienzo.clientWidth, alto = lienzo.clientHeight, ppp = window.devicePixelRatio || 1;
+    if (lienzo.width !== Math.round(ancho * ppp) || lienzo.height !== Math.round(alto * ppp)) {
+      lienzo.width = Math.round(ancho * ppp); lienzo.height = Math.round(alto * ppp);
+    }
+    ctx.setTransform(ppp, 0, 0, ppp, 0, 0);
+    ctx.clearRect(0, 0, ancho, alto);
+    const escala = Math.min(ancho / 4, alto / 3), w = 4 * escala, h = 3 * escala, x0 = (ancho - w) / 2, y0 = (alto - h) / 2;
+    ctx.font = "600 12px " + getComputedStyle(document.body).fontFamily;
+    ctx.textBaseline = "top";
+    for (const c of cajas) {
+      if (c.origen === "obstaculo" && c.nombre === "obstáculo" && !c.aprendido) continue;   // sin nombre no aporta
+      const x = x0 + c.x * w, y = y0 + c.y * h, color = c.aprendido ? "#3ddc84" : "#5fd0ec";
+      ctx.lineWidth = 2; ctx.strokeStyle = color; ctx.strokeRect(x, y, c.w * w, c.h * h);
+      const etiqueta = (c.aprendido ? "✓ " : "") + c.nombre + ` ${Math.round(c.conf * 100)}%`;
+      const tw = ctx.measureText(etiqueta).width + 10, ty = y >= y0 + 18 ? y - 18 : y;
+      ctx.fillStyle = color; ctx.fillRect(x - 1, ty, tw, 18);
+      ctx.fillStyle = "#0b0f17"; ctx.fillText(etiqueta, x + 4, ty + 3);
+    }
+    texto("romaCajasTexto", cajas.length ? "ROMA ve: " + cajas.map(c => c.nombre).join(", ") : "");
+  }
+
+  function ajustarVideo() {
+    const debe = visible() && location.protocol !== "file:";
+    if (debe && !videoAbierto) { img.src = "video_feed_roma?t=" + Date.now(); videoAbierto = true; }
+    else if (!debe && videoAbierto) { img.src = IMAGEN_VACIA; videoAbierto = false; dibujarCajas([]); }
+  }
+
+  function pintar(j) {
+    ultimo = j;
+    const r = j.robot, v = j.video, d = j.deteccion;
+    const otra = r && r.es_de && r.es_de !== "ROMA";
+    texto("romaEstado", !r ? "Sin respuesta" : otra ? `Contesta la cámara de ${r.es_de}: revisa CAMARA_DE_ROMA` : r.conectada ? r.estado_texto + (r.rssi ? ` · Wi-Fi ${r.rssi} dBm` : "") : "No responde");
+    const red = r && r.red, rd = $("romaRed");
+    texto("romaRed", red === "zona" ? "Zona RONE-VIDEO · directa a la laptop" : red === "robot" ? "RobotMapa · pasa por NELO (lento)" : "—");
+    rd.className = red === "zona" ? "bien" : red === "robot" ? "lento" : "";
+    texto("romaFps", v.conectado ? `${v.fps.toFixed(1)} fps · ${v.kbps || 0} kB/s · ${v.visores} ${v.visores === 1 ? "visor" : "visores"}` : v.transmision ? "Sin video" : "Apagado");
+    texto("romaDeteccion", !d.disponible ? "No disponible (falta OpenCV)" : !d.activa ? "Apagado" : d.pausa ? `En pausa: ${d.pausa}` : (d.motor || "Activo"));
+    let mensaje = "";
+    if (location.protocol === "file:") mensaje = "Abre la página desde el servidor para ver el video.";
+    else if (!v.conectado) mensaje = r && r.conectada ? "Sin video: " + (v.error || "esperando") :
+      "La cámara de ROMA no responde. Enciéndela (con CAMARA_DE_ROMA = true) y la zona RONE-VIDEO de la laptop.";
+    $("romaVacio").hidden = !mensaje;
+    texto("romaVacioTexto", mensaje);
+    if (!enviando) {
+      $("romaTransmision").checked = v.transmision;
+      $("romaDetectar").checked = d.activa;
+      $("romaGirada").checked = !!(r && r.girada);
+    }
+    $("romaDetectar").disabled = !d.disponible;
+    $("romaGirada").disabled = !(r && r.conectada);
+    const vga = $("romaResolucion").querySelector('option[value="2"]');
+    vga.disabled = red !== "zona";
+    if (r && typeof r.resolucion === "number" && document.activeElement !== $("romaResolucion")) $("romaResolucion").value = String(r.resolucion);
+    const flash = r && r.conectada ? r.flash : 0, boton = $("romaFlash");
+    boton.setAttribute("aria-pressed", flash > 0 ? "true" : "false");
+    boton.querySelector("span").textContent = flash > 0 ? `Flash ${flash}` : "Flash";
+    boton.disabled = !(r && r.conectada);
+    if (!d.activa) dibujarCajas([]);
+  }
+
+  async function consultar() {
+    if (!visible() || location.protocol === "file:") return;
+    try {
+      const res = await fetch("/api/camara_roma", { cache: "no-store" });
+      if (res.ok) pintar(await res.json());
+    } catch (e) { /* sin servidor */ }
+  }
+  async function consultarCajas() {
+    if (pidiendo || !visible() || !videoAbierto || !ultimo || !ultimo.deteccion.activa) return;
+    pidiendo = true;
+    try {
+      const res = await fetch("/api/camara_roma/detecciones", { cache: "no-store" });
+      if (res.ok) {
+        const d = await res.json();
+        const cajas = d.edad_ms !== null && d.edad_ms < 1500 ? d.cajas : [];
+        setTimeout(() => dibujarCajas(videoAbierto ? cajas : []), d.retardo_ms || 0);
+      }
+    } catch (e) { /* sin servidor */ }
+    pidiendo = false;
+  }
+  async function orden(ruta, cuerpo, aviso) {
+    enviando = true;
+    try {
+      const res = await fetch("/api/camara_roma/" + ruta, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(cuerpo) });
+      const j = await res.json();
+      if (!j.ok) mostrarAviso(j.error || "La cámara de ROMA no aceptó la orden", "error");
+      else if (aviso) mostrarAviso(aviso, "ok");
+    } catch (e) { mostrarAviso("No se pudo hablar con el servidor", "error"); }
+    enviando = false;
+    setTimeout(consultar, 400);
+  }
+
+  $("romaTransmision").addEventListener("change", e => orden("stream", { activa: e.target.checked }, e.target.checked ? "Video de ROMA encendido" : "Video de ROMA apagado"));
+  $("romaDetectar").addEventListener("change", e => orden("deteccion", { activa: e.target.checked }, e.target.checked ? "ROMA nombra lo que ve" : "Nombres de ROMA apagados"));
+  $("romaGirada").addEventListener("change", e => orden("girar", { activa: e.target.checked }, e.target.checked ? "Imagen de ROMA girada 180°" : "Imagen de ROMA normal"));
+  $("romaResolucion").addEventListener("change", e => orden("resolucion", { valor: Number(e.target.value) }, "Resolución enviada a la cámara de ROMA"));
+  const nivel = $("romaFlashNivel");
+  const encendido = () => $("romaFlash").getAttribute("aria-pressed") === "true";
+  $("romaFlash").addEventListener("click", () => orden("flash", { valor: encendido() ? 0 : Number(nivel.value) }));
+  nivel.addEventListener("input", () => { $("romaFlashValor").textContent = nivel.value; });
+  nivel.addEventListener("change", () => { if (encendido()) orden("flash", { valor: Number(nivel.value) }); });
+
+  document.addEventListener("visibilitychange", ajustarVideo);
+  window.addEventListener("hashchange", () => setTimeout(() => { ajustarVideo(); consultar(); }, 60));
+  window.addEventListener("resize", () => dibujarCajas([]));
+  setInterval(() => { ajustarVideo(); consultar(); }, 1000);
+  setInterval(consultarCajas, 250);
   ajustarVideo();
   consultar();
 })();
