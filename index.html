@@ -1677,7 +1677,48 @@ try { var hEntrada = decodeURIComponent(location.hash.replace(/^#/, "")); if (hE
     position: absolute; right: max(2vw, calc((100vw - 1640px) / 2)); top: 50%; width: min(52vw, 920px); z-index: 0; perspective: 1400px;
     transform: translate3d(0, calc(-52% + var(--sube, 0px)), 0); pointer-events: none;
   }
-  .vt-heroe-robot .despliegue { transform: rotateX(var(--rx, 0deg)) rotateY(var(--ry, 0deg)) scale(var(--escala, 1)); transform-style: preserve-3d; transition: transform 1.4s var(--facil); animation: vtFlotar 7s ease-in-out infinite; }
+  .vt-heroe-robot .despliegue { transform: rotateX(var(--rx, 0deg)) rotateY(var(--ry, 0deg)) scale(var(--escala, 1)); transform-style: preserve-3d; transition: transform 1.4s var(--facil), opacity 0.8s var(--facil), filter 0.9s var(--facil); animation: vtFlotar 7s ease-in-out infinite; }
+  /* NELO y ROMA se turnan (sesión 50): el que sale se desenfoca y se aleja; el que entra emerge girando un poco */
+  .vt-heroe-robot[data-robot="roma"] .despliegue { --escala: 0.93; opacity: 0; filter: blur(14px); }
+  .vt-heroe-roma {
+    position: absolute; inset: 0; display: grid; place-items: center; perspective: 1400px;
+    opacity: 0; visibility: hidden; filter: blur(16px); transform: translate3d(5%, 2%, 0) scale(0.9);
+    transition: opacity 0.8s var(--facil), filter 0.9s var(--facil), transform 1.3s var(--facil), visibility 0s linear 1.3s;
+  }
+  .vt-heroe-roma img {
+    display: block; height: 90%; width: auto; max-width: 82%; margin-bottom: 4%; object-fit: contain; user-select: none; -webkit-user-drag: none;
+    transform: rotateX(var(--rx, 0deg)) rotateY(calc(var(--ry, 0deg) - 10deg)); transition: transform 1.4s var(--facil);
+    animation: vtFlotar 7s ease-in-out -2s infinite;
+  }
+  .vt-heroe-roma.despiece img { height: 100%; max-width: 100%; transform: rotateX(var(--rx, 0deg)) rotateY(var(--ry, 0deg)); }
+  .vt-heroe-robot[data-robot="roma"] .vt-heroe-roma { opacity: 1; visibility: visible; filter: none; transform: none; transition-delay: 0.2s, 0.2s, 0.2s, 0s; }
+  .vt-heroe-turno {
+    position: absolute; left: 50%; bottom: -7%; translate: -50% 0; z-index: 3; pointer-events: auto;
+    display: flex; gap: 4px; padding: 4px; border-radius: 999px;
+    background: rgba(255, 255, 255, 0.78); border: 1px solid rgba(11, 16, 34, 0.08);
+    box-shadow: 0 10px 30px -14px rgba(11, 16, 34, 0.35); backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px);
+  }
+  .vt-heroe-turno button {
+    position: relative; display: inline-flex; align-items: center; gap: 8px; min-height: 40px; padding: 0 16px; overflow: hidden;
+    border: 0; border-radius: 999px; background: none; cursor: pointer;
+    font: inherit; font-size: 13px; font-weight: 650; letter-spacing: 0.04em; color: var(--vt-tinta-2);
+    transition: background-color 0.5s var(--facil), color 0.5s var(--facil);
+  }
+  .vt-heroe-turno small { font-size: 12px; font-weight: 500; letter-spacing: 0; color: var(--vt-tinta-3); }
+  .vt-heroe-turno i { width: 9px; height: 9px; border-radius: 50%; background: var(--vt-nelo); box-shadow: 0 0 0 1.5px rgba(11, 16, 34, 0.18); }
+  .vt-heroe-turno [data-turno="roma"] i { background: var(--vt-roma-claro); }
+  .vt-heroe-turno button[aria-pressed="true"] { background: var(--vt-tinta); color: #fff; }
+  .vt-heroe-turno button[aria-pressed="true"] small { color: rgba(255, 255, 255, 0.62); }
+  @media (hover: hover) { .vt-heroe-turno button[aria-pressed="false"]:hover { background: rgba(11, 16, 34, 0.06); color: var(--vt-tinta); } }
+  .vt-heroe-turno button:focus-visible { outline: 2px solid var(--vt-azul); outline-offset: 2px; }
+  /* cuánto falta para el cambio: una línea que se llena debajo del robot activo */
+  .vt-heroe-turno button::after {
+    content: ""; position: absolute; left: 16px; right: 16px; bottom: 6px; height: 2px; border-radius: 2px;
+    background: rgba(255, 255, 255, 0.55); transform: scaleX(0); transform-origin: 0 50%; opacity: 0;
+  }
+  .vt-heroe-robot.rotando .vt-heroe-turno button[aria-pressed="true"]::after { opacity: 1; animation: vtTurnoAvance var(--turno-ms, 6000ms) linear both; }
+  .vt-heroe-robot.rotando.pausado .vt-heroe-turno button::after { animation-play-state: paused; }
+  @keyframes vtTurnoAvance { to { transform: scaleX(1); } }
   @keyframes vtFlotar { 50% { translate: 0 -12px; } }
   .vt-heroe-sombra { position: absolute; left: 22%; right: 22%; bottom: 2%; height: 9%; border-radius: 50%; background: radial-gradient(closest-side, rgba(11, 16, 34, 0.22), rgba(11, 16, 34, 0)); filter: blur(6px); z-index: -1; animation: vtSombra 7s ease-in-out infinite; }
   @keyframes vtSombra { 50% { transform: scaleX(0.9); opacity: 0.75; } }
@@ -1943,7 +1984,8 @@ try { var hEntrada = decodeURIComponent(location.hash.replace(/^#/, "")); if (hE
   }
   @media (max-width: 900px) {
     .vt-heroe { grid-template-columns: 1fr; align-content: end; padding-top: 88px; padding-bottom: 96px; }
-    .vt-heroe-robot { position: relative; right: auto; top: auto; width: min(100%, 560px); margin: 0 auto 8px; transform: translate3d(0, var(--sube, 0px), 0); }
+    .vt-heroe-robot { position: relative; right: auto; top: auto; width: min(100%, 560px); margin: 0 auto 56px; transform: translate3d(0, var(--sube, 0px), 0); }
+    .vt-heroe-turno { bottom: -48px; }
     .vt-heroe-texto { grid-column: 1; }
     .vt-heroe-pie .vt-pista-cursor { display: none; }
     .vt-tarjetas, .vt-ods { grid-template-columns: 1fr; }
@@ -1981,7 +2023,7 @@ try { var hEntrada = decodeURIComponent(location.hash.replace(/^#/, "")); if (hE
 
   /* ---------- Calma y movimiento reducido: todo visible y quieto ---------- */
   html.calma .vt-p { opacity: 1; }
-  html.calma :is(#vtRomaCam, .vt-heroe-robot .despliegue, .vt-heroe-sombra, .vt-consola-ico svg, .vt-punto::before, .vt-desliza i::after, .vt-vivo.en-vivo i) { animation: none; }
+  html.calma :is(#vtRomaCam, .vt-heroe-robot .despliegue, .vt-heroe-roma img, .vt-heroe-sombra, .vt-consola-ico svg, .vt-punto::before, .vt-desliza i::after, .vt-vivo.en-vivo i) { animation: none; }
   html.calma :is(.vt-consola, .vt-orbe, .vt-steam article, .vt-pista li, .vt-tarjeta) { transition-duration: 0.01s; }
   html.calma .vt-que { height: auto; }
   html.calma .vt-que-fijo { position: relative; height: auto; padding-block: 120px; }
@@ -1990,7 +2032,7 @@ try { var hEntrada = decodeURIComponent(location.hash.replace(/^#/, "")); if (hE
   html.calma .vt-portal-circulo { position: relative; clip-path: none; padding-block: 120px; }
   @media (prefers-reduced-motion: reduce) {
     .vt-p { opacity: 1; }
-    :is(#vtRomaCam, .vt-heroe-robot .despliegue, .vt-heroe-sombra, .vt-consola-ico svg, .vt-punto::before, .vt-desliza i::after, .vt-vivo.en-vivo i) { animation: none; }
+    :is(#vtRomaCam, .vt-heroe-robot .despliegue, .vt-heroe-roma img, .vt-heroe-sombra, .vt-consola-ico svg, .vt-punto::before, .vt-desliza i::after, .vt-vivo.en-vivo i) { animation: none; }
     .vt-que { height: auto; }
     .vt-que-fijo { position: relative; height: auto; padding-block: 120px; }
     .vt-portal { height: auto; }
@@ -2256,9 +2298,16 @@ try { var hEntrada = decodeURIComponent(location.hash.replace(/^#/, "")); if (hE
     <!-- Escena: un escaneo láser del túnel (puntos que reaccionan al cursor) y NELO real, que se separa al bajar -->
     <section class="vt-heroe" id="vt-heroe" aria-labelledby="vtTitulo">
       <canvas class="vt-escaneo" id="vtEscaneo" aria-hidden="true"></canvas>
-      <div class="vt-heroe-robot" id="vtHeroeRobot">
+      <div class="vt-heroe-robot" id="vtHeroeRobot" data-robot="nelo">
         <div class="despliegue" id="vtHeroeNelo" role="img" aria-label="NELO, el carro explorador de Andrea De La Torre"></div>
+        <div class="vt-heroe-roma" id="vtHeroeRoma" role="img" aria-label="ROMA, el carro explorador de Ana Lucia López Carrera" aria-hidden="true">
+          <img data-media="roma/roma_34.webp" alt="" width="1096" height="921" decoding="async">
+        </div>
         <span class="vt-heroe-sombra" aria-hidden="true"></span>
+        <div class="vt-heroe-turno" role="group" aria-label="Robot que se muestra">
+          <button type="button" data-turno="nelo" aria-pressed="true"><i aria-hidden="true"></i>NELO<small>mapa</small></button>
+          <button type="button" data-turno="roma" aria-pressed="false"><i aria-hidden="true"></i>ROMA<small>cámara</small></button>
+        </div>
       </div>
       <div class="vt-heroe-texto">
         <h1 id="vtTitulo"><span class="vt-linea"><span>Imagen y mapa</span></span> <span class="vt-linea"><span>del lugar, antes</span></span> <span class="vt-linea"><span>de que alguien</span></span> <span class="vt-linea"><span>entre.</span></span></h1>
@@ -9025,6 +9074,44 @@ var qrcode = function() {
     robotHeroe.style.setProperty("--ry", "0deg"); robotHeroe.style.setProperty("--rx", "0deg");
   });
 
+  // NELO y ROMA se turnan en la escena (sesión 50): NELO se despliega, 3 s después entra ROMA,
+  // y así sucesivamente. Solo corre con la escena a la vista; en calma cambian solo con los botones.
+  const romaHeroe = $("vtHeroeRoma"), botonesTurno = [...robotHeroe.querySelectorAll("[data-turno]")];
+  const DURACION_TURNO = { nelo: 650 + 2600 + 3000, roma: 6500 };
+  let turno = "nelo", transcurridoTurno = 0, ultimoTic = 0;
+  // Si existe la vista despiezada de ROMA (media/roma/roma_despiece.webp), se usa en lugar de la foto
+  const imgRomaHeroe = romaHeroe.querySelector("img");
+  imgRomaHeroe.addEventListener("load", function probarDespiece() {
+    imgRomaHeroe.removeEventListener("load", probarDespiece);
+    const otra = new Image(), url = imgRomaHeroe.src.replace("roma_34.webp", "roma_despiece.webp");
+    otra.onload = () => { imgRomaHeroe.src = url; imgRomaHeroe.width = otra.naturalWidth; imgRomaHeroe.height = otra.naturalHeight; romaHeroe.classList.add("despiece"); };
+    otra.src = url;
+  });
+  const turnoActivo = () => enEntrada() && heroeVisible && !document.hidden && !quieto();
+  function mostrarTurno(r, conDespliegue) {
+    turno = r; transcurridoTurno = 0;
+    robotHeroe.dataset.robot = r;
+    botonesTurno.forEach(b => b.setAttribute("aria-pressed", String(b.dataset.turno === r)));
+    contHeroe.setAttribute("aria-hidden", String(r !== "nelo"));
+    romaHeroe.setAttribute("aria-hidden", String(r !== "roma"));
+    robotHeroe.style.setProperty("--turno-ms", `${DURACION_TURNO[r]}ms`);
+    robotHeroe.classList.remove("rotando"); void robotHeroe.offsetWidth;
+    robotHeroe.classList.toggle("rotando", !quieto());
+    if (r === "nelo" && conDespliegue) desplegarAlEntrar();
+  }
+  setInterval(() => {
+    const ahora = performance.now(), dt = ultimoTic ? ahora - ultimoTic : 0;
+    ultimoTic = ahora;
+    const activo = turnoActivo();
+    robotHeroe.classList.toggle("pausado", !activo);
+    if (!activo) return;
+    transcurridoTurno += Math.min(dt, 400);
+    if (transcurridoTurno >= DURACION_TURNO[turno]) mostrarTurno(turno === "nelo" ? "roma" : "nelo", true);
+  }, 120);
+  botonesTurno.forEach(b => b.addEventListener("click", () => {
+    if (b.dataset.turno !== turno) mostrarTurno(b.dataset.turno, true);
+  }));
+
   // ROMA (sesión 45): sus tres fotos se turnan solas (se detienen con el cursor encima o al elegir una)
   // y el mando se inclina con el cursor, como la mano de su operadora
   const romaEsc = $("vtRoma"), romaVistas = [...romaEsc.querySelectorAll(".vt-roma-vista")];
@@ -10199,7 +10286,7 @@ var qrcode = function() {
     medirLienzo();
     medirVitrina();
     arrancarEscena();
-    desplegarAlEntrar();
+    mostrarTurno("nelo", true);
   }
   let estabaEnEntrada = null;
   new MutationObserver(() => { if (enEntrada() !== estabaEnEntrada) { estabaEnEntrada = enEntrada(); prepararEntrada(); } })
