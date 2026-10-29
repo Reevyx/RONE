@@ -13,139 +13,7 @@
   const CFG = window.RONE_CONFIG || {};
   const params = new URLSearchParams(location.search);
   const publico = location.hostname.endsWith(".github.io") || params.has("remoto") || !!CFG.siempreRemoto;
-  if (!publico || !CFG.nube) { window.RONE_RED = { modo: "local" }; return; }
-
-  const NUBE = String(CFG.nube).replace(/\/$/, "");
-  const fetchOriginal = window.fetch.bind(window);
-  const red = window.RONE_RED = { modo: "buscando", base: null, neloModo: null, robot: false };
-  let claveOp = "";
-  try { claveOp = localStorage.getItem("rone.clave") || ""; } catch (e) { /* sin almacenamiento */ }
-
   const json = (datos, estado = 200) => new Response(JSON.stringify(datos), { status: estado, headers: { "Content-Type": "application/json" } });
-  const ES_SERVIDOR = /^\/(api|jarvis|video_feed|video_feed_roma|video_profundidad|fotos|informe)(\/|\?|$)/;
-  function rutaServidor(u) {
-    if (u instanceof URL) u = u.href;
-    else if (u && typeof u === "object" && "url" in u) u = u.url;
-    u = String(u || "");
-    if (u.startsWith(location.origin)) u = u.slice(location.origin.length);
-    const base = location.pathname.replace(/[^/]*$/, "");          // /repositorio/ en GitHub Pages
-    if (base.length > 1 && u.startsWith(base)) u = "/" + u.slice(base.length);
-    if (/^(video_feed|video_feed_roma|video_profundidad|informe|api|jarvis|fotos)(\/|\?|$)/.test(u)) u = "/" + u;   // rutas relativas ("informe", "video_feed?t=…")
-    return ES_SERVIDOR.test(u) ? u : null;
-  }
-
-  // ---------- ¿Dónde está la laptop del robot? ----------
-  let listoPrimera;
-  const primera = new Promise((r) => { listoPrimera = r; });
-  let tBuscar = 0, buscando = false;
-  async function buscarEstacion(ahora) {
-    if (buscando) return;
-    buscando = true;
-    clearTimeout(tBuscar);
-    const antes = red.modo;
-    try {
-      const r = await fetchOriginal(NUBE + "/estacion" + (ahora ? "?ahora=1" : ""), { cache: "no-store", signal: AbortSignal.timeout(6000) });
-      const d = await r.json();
-      if (d.viva && d.url) { red.base = d.url; red.modo = "vivo"; red.robot = !!d.robot; }
-      else { red.base = null; red.modo = "demo"; red.robot = false; }
-    } catch (e) {
-      if (red.modo === "buscando") red.modo = "demo";
-    }
-    buscando = false;
-    if (antes !== red.modo) { red.neloModo = null; pintarModo(); }
-    listoPrimera();
-    tBuscar = setTimeout(buscarEstacion, red.modo === "vivo" ? 30000 : 20000);
-  }
-  let tPronto = 0;
-  function revisarPronto() {
-    if (Date.now() - tPronto < 8000) return;
-    tPronto = Date.now();
-    buscarEstacion(true);
-  }
-
-  function pedirClave() {
-    const c = window.prompt("Para manejar el robot desde internet hace falta la clave del operador.\n" +
-      "(La muestra rone_estacion.bat en la laptop del robot.)\n\nClave:", "");
-    if (!c) return false;
-    claveOp = c.trim();
-    try { localStorage.setItem("rone.clave", claveOp); } catch (e) { /* sin almacenamiento */ }
-    return true;
-  }
-
-  async function alServidor(ruta, opciones, reintento) {
-    const h = new Headers((opciones && opciones.headers) || {});
-    if (claveOp) h.set("X-Rone-Clave", claveOp);
-    try {
-      const r = await fetchOriginal(red.base + ruta, { ...(opciones || {}), headers: h });
-      if (r.status === 403 && !reintento) {
-        const d = await r.clone().json().catch(() => null);
-        if (d && d.necesita_clave) {
-          if (claveOp) { claveOp = ""; try { localStorage.removeItem("rone.clave"); } catch (e) { /* nada */ } }
-          if (pedirClave()) return alServidor(ruta, opciones, true);
-        }
-      }
-      return r;
-    } catch (e) {
-      if (!(e && e.name === "AbortError")) revisarPronto();
-      throw e;
-    }
-  }
-
-  window.fetch = async function (recurso, opciones) {
-    const ruta = rutaServidor(recurso);
-    if (!ruta) return fetchOriginal(recurso, opciones);
-    await primera;
-    if (ruta.startsWith("/jarvis/")) return nelo(ruta, opciones || {});
-    if (red.modo !== "vivo") return demo(ruta, opciones || {});
-    return alServidor(ruta, opciones);
-  };
-
-  // Imágenes (video de la cámara, fotos) y audios (voz de NELO local) también van a la laptop
-  const IMAGEN_VACIA = "data:image/gif;base64,R0lGODlhAQABAAAAACH5BAEKAAEALAAAAAABAAEAAAICTAEAOw==";
-  const descSrc = Object.getOwnPropertyDescriptor(HTMLImageElement.prototype, "src");
-  Object.defineProperty(HTMLImageElement.prototype, "src", {
-    configurable: true,
-    get() { return descSrc.get.call(this); },
-    set(v) {
-      const ruta = rutaServidor(v);
-      this.__roneRuta = ruta;
-      if (ruta && red.modo === "buscando") {
-        // la página todavía no sabe si la laptop está conectada (la cámara pide el video al cargar): se espera
-        descSrc.set.call(this, IMAGEN_VACIA);
-        primera.then(() => { if (this.__roneRuta === ruta) descSrc.set.call(this, red.base ? red.base + ruta : IMAGEN_VACIA); });
-        return;
-      }
-      if (ruta) v = red.modo === "vivo" && red.base ? red.base + ruta : IMAGEN_VACIA;
-      descSrc.set.call(this, v);
-    },
-  });
-  const AudioOriginal = window.Audio;
-  function AudioRone(src) {
-    const a = new AudioOriginal();
-    a.crossOrigin = "anonymous";   // si no, el medidor de volumen de NELO dejaría el audio en silencio
-    if (src !== undefined) {
-      const ruta = rutaServidor(src);
-      a.src = ruta && red.base ? red.base + ruta : src;
-    }
-    return a;
-  }
-  AudioRone.prototype = AudioOriginal.prototype;
-  window.Audio = AudioRone;
-  document.addEventListener("click", (e) => {   // enlace "Informe" → el de la laptop
-    const a = e.target.closest && e.target.closest("a[href]");
-    if (!a) return;
-    if (a.id === "enlaceAutodiag" || /:5001\//.test(a.href)) {   // el autodiagnóstico es otro programa: no pasa por el túnel
-      e.preventDefault();
-      window.alert("El autodiagnóstico físico se abre solo en la laptop del robot (puerto 5001).");
-      return;
-    }
-    const ruta = rutaServidor(a.getAttribute("href"));
-    if (!ruta) return;
-    e.preventDefault();
-    if (red.modo === "vivo" && red.base) window.open(red.base + ruta, "_blank", "noopener");
-    else window.alert("El informe está en la laptop del robot y ahora no está conectada.");
-  }, true);
-
   // ---------- Modo demostración: un recorrido simulado (el robot no está conectado) ----------
   const RUTA = (() => {
     const p = [], tramo = (x0, y0, x1, y1) => { const n = Math.max(2, Math.round(Math.hypot(x1 - x0, y1 - y0) / 30)); for (let i = 0; i < n; i++) p.push([x0 + (x1 - x0) * i / n, y0 + (y1 - y0) * i / n]); };
@@ -209,6 +77,258 @@
     if (metodo === "GET") return json({ ok: false, demo: true, error }, 503);
     return json({ ok: false, demo: true, error });
   }
+
+  // ---------- Demostración hasta que llegue el robot (sesión 51) ----------
+  // La página muestra el recorrido simulado mientras el robot no manda datos, y pasa sola al mapa real en cuanto
+  // llegan (y vuelve a la demostración si el robot deja de mandar 20 s). Vale en localhost y en GitHub.
+  const DEMO_TRAS_MS = 20000;
+  const mapa = { demo: true, ultimoRobot: 0, ultimaRevision: 0, conocido: false };
+  async function datosMapa(ruta, pedir, pedirPing) {
+    const ahora = Date.now();
+    if (mapa.demo) {
+      if (ahora - mapa.ultimaRevision > 3000) {        // ¿ya llegó el robot?
+        mapa.ultimaRevision = ahora;
+        try {
+          const p = await (await pedirPing()).json();
+          if (p && p.robot) { mapa.demo = false; mapa.ultimoRobot = ahora; avisarCambio(); }
+        } catch (e) { /* el servidor no responde: sigue la demostración */ }
+      }
+      if (mapa.demo) { mapa.conocido = true; return json(datosDemo(ruta)); }
+    }
+    const r = await pedir(ruta);
+    const d = await r.clone().json().catch(() => null);
+    if (d && d.robot_edad_ms != null) mapa.ultimoRobot = Math.max(mapa.ultimoRobot, ahora - d.robot_edad_ms);   // cuándo llegó su último dato
+    if (d && ahora - mapa.ultimoRobot > DEMO_TRAS_MS) {
+      mapa.demo = true;
+      mapa.ultimaRevision = ahora;
+      avisarCambio();
+      return json(datosDemo(ruta));
+    }
+    mapa.conocido = true;
+    return r;
+  }
+  let avisarCambio = () => {};
+
+  const ES_SERVIDOR = /^\/(api|jarvis|video_feed|video_feed_roma|video_profundidad|fotos|informe)(\/|\?|$)/;
+  function rutaServidor(u) {
+    if (u instanceof URL) u = u.href;
+    else if (u && typeof u === "object" && "url" in u) u = u.url;
+    u = String(u || "");
+    if (u.startsWith(location.origin)) u = u.slice(location.origin.length);
+    const base = location.pathname.replace(/[^/]*$/, "");          // /repositorio/ en GitHub Pages
+    if (base.length > 1 && u.startsWith(base)) u = "/" + u.slice(base.length);
+    if (/^(video_feed|video_feed_roma|video_profundidad|informe|api|jarvis|fotos)(\/|\?|$)/.test(u)) u = "/" + u;   // rutas relativas ("informe", "video_feed?t=…")
+    return ES_SERVIDOR.test(u) ? u : null;
+  }
+
+
+  // ---------- Aviso visible del modo ----------
+  // estado: "demo" (sin datos del robot) o "vivo"; donde: "local" (servida por server.py), "directo" (GitHub en
+  // la laptop, sin túnel), "tunel" (GitHub desde otro equipo) o "nube" (sin laptop)
+  let pastilla = null, ultimoAviso = "", tOcultar = 0;
+  function pintarAviso(estado, donde) {
+    if (!document.body) { document.addEventListener("DOMContentLoaded", () => pintarAviso(estado, donde), { once: true }); return; }
+    if (!pastilla) {
+      pastilla = document.createElement("div");
+      pastilla.className = "rone-modo";
+      pastilla.setAttribute("role", "status");
+      document.body.append(pastilla);
+      const estilo = document.createElement("style");
+      estilo.textContent = `.rone-modo{position:fixed;left:16px;bottom:16px;z-index:9000;display:flex;align-items:center;gap:8px;max-width:calc(100vw - 32px);
+        padding:8px 14px;border-radius:999px;font:600 12.5px/1.3 Geist,"Segoe UI",system-ui,sans-serif;color:#0b1022;background:rgba(255,255,255,.92);
+        border:1px solid rgba(11,16,34,.14);box-shadow:0 8px 24px -12px rgba(11,16,34,.35);backdrop-filter:blur(8px);transition:opacity .6s ease}
+        .rone-modo i{width:8px;height:8px;border-radius:50%;background:#f59e0b;flex:none}
+        .rone-modo.vivo i{background:#16a34a}
+        .rone-modo.oculta{opacity:0;pointer-events:none}
+        @media (max-width:900px){.rone-modo{bottom:76px}}`;
+      document.head.append(estilo);
+    }
+    const textos = {
+      demo: { local: "Demostración: esperando los datos del robot (pasa solo al mapa real al encenderlo)",
+              directo: "Demostración: la laptop está lista, esperando los datos del robot",
+              tunel: "Demostración: la laptop está conectada, esperando los datos del robot",
+              nube: "Demostración: el robot no está conectado ahora" },
+      vivo: { local: "En vivo: llegan los datos del robot", directo: "En vivo: directo a esta laptop",
+              tunel: "En vivo: conectado a la laptop del robot", nube: "En vivo" },
+    };
+    const clave = estado + donde;
+    if (clave === ultimoAviso) return;
+    ultimoAviso = clave;
+    pastilla.classList.toggle("vivo", estado === "vivo");
+    pastilla.innerHTML = "<i></i>" + textos[estado][donde];
+    pastilla.classList.remove("oculta");
+    clearTimeout(tOcultar);
+    if (estado === "vivo" && donde === "local") tOcultar = setTimeout(() => pastilla.classList.add("oculta"), 5000);
+  }
+  // Mientras se muestra la demostración, el estado de arriba lo dice (la página escribiría "Esperando datos")
+  function vigilarTextoEstado(enDemo) {
+    const poner = () => {
+      const texto = document.getElementById("textoEstado");
+      if (!texto) return;
+      const corregir = () => { if (enDemo() && texto.textContent !== "Demostración (sin robot)") texto.textContent = "Demostración (sin robot)"; };
+      corregir();
+      new MutationObserver(corregir).observe(texto, { childList: true, characterData: true, subtree: true });
+    };
+    if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", poner, { once: true });
+    else poner();
+  }
+
+  if (!publico || !CFG.nube) {
+    // Página servida por server.py (localhost o la red del robot): todo va directo al servidor, como siempre;
+    // solo el mapa muestra la demostración mientras el robot no está mandando datos.
+    const fetchLocal = window.fetch.bind(window);
+    const red = window.RONE_RED = { modo: "local", base: "", get demo() { return mapa.demo; } };
+    window.fetch = function (recurso, opciones) {
+      const ruta = rutaServidor(recurso);
+      if (ruta && ruta.startsWith("/api/data")) {
+        return datosMapa(ruta, (r) => fetchLocal(r, opciones), () => fetchLocal("/api/ping", { cache: "no-store" }));
+      }
+      return fetchLocal(recurso, opciones);
+    };
+    avisarCambio = () => pintarAviso(mapa.demo ? "demo" : "vivo", "local");
+    pintarAviso("demo", "local");
+    vigilarTextoEstado(() => mapa.demo);
+    return;
+  }
+
+  const NUBE = String(CFG.nube).replace(/\/$/, "");
+  const fetchOriginal = window.fetch.bind(window);
+  const red = window.RONE_RED = { modo: "buscando", base: null, neloModo: null, robot: false, directo: false };
+  // En la laptop del robot la página habla directo con server.py (http://127.0.0.1:5000), sin pasar por el túnel.
+  // Solo se intenta en el navegador marcado como "la laptop" (abriendo una vez la página con ?laptop=1), para no
+  // pedir permisos de red local a los visitantes. ?laptop=0 lo quita.
+  const LOCAL = "http://127.0.0.1:" + (CFG.puerto || 5000);
+  let enLaptop = false;
+  try {
+    if (params.get("laptop") === "1") localStorage.setItem("rone.laptop", "1");
+    if (params.get("laptop") === "0") localStorage.removeItem("rone.laptop");
+    enLaptop = localStorage.getItem("rone.laptop") === "1";
+  } catch (e) { enLaptop = params.get("laptop") === "1"; }
+  let claveOp = "";
+  try { claveOp = localStorage.getItem("rone.clave") || ""; } catch (e) { /* sin almacenamiento */ }
+
+  // ---------- ¿Dónde está la laptop del robot? ----------
+  let listoPrimera;
+  const primera = new Promise((r) => { listoPrimera = r; });
+  let tBuscar = 0, buscando = false;
+  async function buscarEstacion(ahora) {
+    if (buscando) return;
+    buscando = true;
+    clearTimeout(tBuscar);
+    const antes = red.modo + red.directo;
+    let local = false;
+    if (enLaptop) {
+      try {
+        const r = await fetchOriginal(LOCAL + "/api/ping", { cache: "no-store", signal: AbortSignal.timeout(1500) });
+        const d = await r.json();
+        if (d && d.rone) { red.base = LOCAL; red.modo = "vivo"; red.directo = true; red.robot = !!d.robot; local = true; }
+      } catch (e) { /* el servidor de esta laptop no está corriendo */ }
+    }
+    if (!local) try {
+      red.directo = false;
+      const r = await fetchOriginal(NUBE + "/estacion" + (ahora ? "?ahora=1" : ""), { cache: "no-store", signal: AbortSignal.timeout(6000) });
+      const d = await r.json();
+      if (d.viva && d.url) { red.base = d.url; red.modo = "vivo"; red.robot = !!d.robot; }
+      else { red.base = null; red.modo = "demo"; red.robot = false; }
+    } catch (e) {
+      if (red.modo === "buscando") red.modo = "demo";
+    }
+    buscando = false;
+    if (antes !== red.modo + red.directo) { red.neloModo = null; pintarModo(); }
+    listoPrimera();
+    tBuscar = setTimeout(buscarEstacion, red.modo === "vivo" ? 30000 : (enLaptop ? 5000 : 20000));
+  }
+  let tPronto = 0;
+  function revisarPronto() {
+    if (Date.now() - tPronto < 8000) return;
+    tPronto = Date.now();
+    buscarEstacion(true);
+  }
+
+  function pedirClave() {
+    const c = window.prompt("Para manejar el robot desde internet hace falta la clave del operador.\n" +
+      "(La muestra rone_estacion.bat en la laptop del robot.)\n\nClave:", "");
+    if (!c) return false;
+    claveOp = c.trim();
+    try { localStorage.setItem("rone.clave", claveOp); } catch (e) { /* sin almacenamiento */ }
+    return true;
+  }
+
+  async function alServidor(ruta, opciones, reintento) {
+    const h = new Headers((opciones && opciones.headers) || {});
+    if (claveOp) h.set("X-Rone-Clave", claveOp);
+    try {
+      const r = await fetchOriginal(red.base + ruta, { ...(opciones || {}), headers: h });
+      if (r.status === 403 && !reintento) {
+        const d = await r.clone().json().catch(() => null);
+        if (d && d.necesita_clave) {
+          if (claveOp) { claveOp = ""; try { localStorage.removeItem("rone.clave"); } catch (e) { /* nada */ } }
+          if (pedirClave()) return alServidor(ruta, opciones, true);
+        }
+      }
+      return r;
+    } catch (e) {
+      if (!(e && e.name === "AbortError")) revisarPronto();
+      throw e;
+    }
+  }
+
+  window.fetch = async function (recurso, opciones) {
+    const ruta = rutaServidor(recurso);
+    if (!ruta) return fetchOriginal(recurso, opciones);
+    await primera;
+    if (ruta.startsWith("/jarvis/")) return nelo(ruta, opciones || {});
+    if (red.modo !== "vivo") return demo(ruta, opciones || {});
+    if (ruta.startsWith("/api/data")) return datosMapa(ruta, (r) => alServidor(r, opciones), () => alServidor("/api/ping", { cache: "no-store" }));
+    return alServidor(ruta, opciones);
+  };
+
+  // Imágenes (video de la cámara, fotos) y audios (voz de NELO local) también van a la laptop
+  const IMAGEN_VACIA = "data:image/gif;base64,R0lGODlhAQABAAAAACH5BAEKAAEALAAAAAABAAEAAAICTAEAOw==";
+  const descSrc = Object.getOwnPropertyDescriptor(HTMLImageElement.prototype, "src");
+  Object.defineProperty(HTMLImageElement.prototype, "src", {
+    configurable: true,
+    get() { return descSrc.get.call(this); },
+    set(v) {
+      const ruta = rutaServidor(v);
+      this.__roneRuta = ruta;
+      if (ruta && red.modo === "buscando") {
+        // la página todavía no sabe si la laptop está conectada (la cámara pide el video al cargar): se espera
+        descSrc.set.call(this, IMAGEN_VACIA);
+        primera.then(() => { if (this.__roneRuta === ruta) descSrc.set.call(this, red.base ? red.base + ruta : IMAGEN_VACIA); });
+        return;
+      }
+      if (ruta) v = red.modo === "vivo" && red.base ? red.base + ruta : IMAGEN_VACIA;
+      descSrc.set.call(this, v);
+    },
+  });
+  const AudioOriginal = window.Audio;
+  function AudioRone(src) {
+    const a = new AudioOriginal();
+    a.crossOrigin = "anonymous";   // si no, el medidor de volumen de NELO dejaría el audio en silencio
+    if (src !== undefined) {
+      const ruta = rutaServidor(src);
+      a.src = ruta && red.base ? red.base + ruta : src;
+    }
+    return a;
+  }
+  AudioRone.prototype = AudioOriginal.prototype;
+  window.Audio = AudioRone;
+  document.addEventListener("click", (e) => {   // enlace "Informe" → el de la laptop
+    const a = e.target.closest && e.target.closest("a[href]");
+    if (!a) return;
+    if (a.id === "enlaceAutodiag" || /:5001\//.test(a.href)) {   // el autodiagnóstico es otro programa: no pasa por el túnel
+      e.preventDefault();
+      window.alert("El autodiagnóstico físico se abre solo en la laptop del robot (puerto 5001).");
+      return;
+    }
+    const ruta = rutaServidor(a.getAttribute("href"));
+    if (!ruta) return;
+    e.preventDefault();
+    if (red.modo === "vivo" && red.base) window.open(red.base + ruta, "_blank", "noopener");
+    else window.alert("El informe está en la laptop del robot y ahora no está conectada.");
+  }, true);
+
 
   // ---------- NELO: el de la laptop si está encendido; si no, NELO en la nube ----------
   async function decidirNelo() {
@@ -335,36 +455,12 @@
     return json({ ok: false, error: "No disponible en la nube." });
   }
 
-  // ---------- Aviso visible del modo ----------
-  let pastilla = null;
   function pintarModo() {
-    if (!document.body) { document.addEventListener("DOMContentLoaded", pintarModo, { once: true }); return; }
-    if (!pastilla) {
-      pastilla = document.createElement("div");
-      pastilla.className = "rone-modo";
-      pastilla.setAttribute("role", "status");
-      document.body.append(pastilla);
-      const estilo = document.createElement("style");
-      estilo.textContent = `.rone-modo{position:fixed;left:16px;bottom:16px;z-index:9000;display:flex;align-items:center;gap:8px;max-width:calc(100vw - 32px);
-        padding:8px 14px;border-radius:999px;font:600 12.5px/1.3 Geist,"Segoe UI",system-ui,sans-serif;color:#0b1022;background:rgba(255,255,255,.92);
-        border:1px solid rgba(11,16,34,.14);box-shadow:0 8px 24px -12px rgba(11,16,34,.35);backdrop-filter:blur(8px)}
-        .rone-modo i{width:8px;height:8px;border-radius:50%;background:#f59e0b;flex:none}
-        .rone-modo.vivo i{background:#16a34a}
-        @media (max-width:900px){.rone-modo{bottom:76px}}`;
-      document.head.append(estilo);
-    }
-    const vivo = red.modo === "vivo";
-    pastilla.classList.toggle("vivo", vivo);
-    pastilla.innerHTML = vivo ? "<i></i>En vivo: conectado a la laptop del robot" : "<i></i>Demostración: el robot no está conectado ahora";
-    const texto = document.getElementById("textoEstado");
-    if (texto && !vivo) texto.textContent = "Demostración (sin robot)";
+    const donde = red.modo !== "vivo" ? "nube" : red.directo ? "directo" : "tunel";
+    pintarAviso(red.modo === "vivo" && !mapa.demo ? "vivo" : "demo", donde);
   }
-  document.addEventListener("DOMContentLoaded", () => {
-    const texto = document.getElementById("textoEstado");
-    if (texto) new MutationObserver(() => {
-      if (red.modo !== "vivo" && texto.textContent !== "Demostración (sin robot)") texto.textContent = "Demostración (sin robot)";
-    }).observe(texto, { childList: true, characterData: true, subtree: true });
-  });
+  avisarCambio = pintarModo;
+  vigilarTextoEstado(() => red.modo !== "vivo" || mapa.demo);
   document.addEventListener("visibilitychange", () => { if (!document.hidden) revisarPronto(); });
 
   buscarEstacion(true);
